@@ -25,7 +25,7 @@ const CB = {
   ...require('callbag-basics')
 }
 
-const JSONDB = require('node-json-db').JsonDB
+const JSONDB = require('node-json-db')
 
 const {
   DateTime
@@ -36,24 +36,25 @@ const defaultModel = require('./model-ajstewart')
 const pogo = require('./pogo')
 
 require('./server')
-
-const Discord = require('discord.js')
+const bot = require('./bot')
 
 run(async () => {
+  // Await the bot
+  await bot.client
+
   console.log('Castform is running')
 
-  // Load config to check
-  const configDB = new JSONDB('config').getData('/')
+  // Load locations to check
+  const locationsDB = new JSONDB('locations').getData('/')
 
   // Setup callbags
   pipe(
-    configDB,
+    locationsDB,
     keys,
-    filter(key => !configDB[key].disabled),
+    filter(key => !locationsDB[key].disabled),
     forEach(key => {
-      const location = configDB[key]
+      const location = locationsDB[key]
       const model = location.model ? require(`./model-${location.model}`) : defaultModel
-      const webhookClients = location.webhooks.map(({id, token}) => new Discord.WebhookClient(id, token)) 
 
       // forecasts
       const forecast = CB.operate(
@@ -148,7 +149,7 @@ run(async () => {
             location: key,
             payload: report
           })
-          webhookClients.forEach(webhookClient => webhookClient.send(report.join('\n')))
+          bot.send(report.join('\n'))
         }),
       )
 
